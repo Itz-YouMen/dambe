@@ -22,6 +22,7 @@ canvas{display:block}
 #startCard{max-width:460px;width:100%;background:rgba(8,13,20,.94);border:1px solid #ffffff30;border-radius:16px;padding:24px;text-align:center;box-shadow:0 20px 70px #0009}
 #startCard h1{font-size:24px;margin:0 0 8px;color:var(--gold)}
 #startCard p{font-size:13px;line-height:1.6;color:#d5d9df}
+button:disabled{opacity:.45;cursor:default}
 button{border:0;border-radius:9px;background:var(--gold);color:#17120a;font-weight:900;padding:12px 18px;font-size:13px;cursor:pointer}
 #restart{position:fixed;z-index:8;top:58%;left:50%;transform:translateX(-50%);display:none}
 #desktopHelp{position:fixed;z-index:4;bottom:12px;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:9px 14px;font-size:11px;color:#e9edf3;white-space:nowrap;pointer-events:none}
@@ -76,8 +77,8 @@ button{border:0;border-radius:9px;background:var(--gold);color:#17120a;font-weig
   <div id="startCard">
     <h1>DAMBE: WARRIORS OF AREWA</h1>
     <p>Put <b>fighter 1.fbx</b> and <b>fighter 2.fbx</b> (Mixamo rig) inside the <b>assets</b> folder. Fighters are animated procedurally on their real skeleton: stance, footwork, punches, block, dodge, hit and knockout.</p>
-    <p>Press <b>P</b> for the rig tuner. Use VS Code Live Server to run this project.</p>
-    <button id="startBtn">ENTER THE ARENA</button>
+    <p id="loadMsg" style="color:#e3ad4b">Loading fighters…</p>
+    <button id="startBtn" disabled>ENTER THE ARENA</button>
   </div>
 </div>
 
@@ -176,10 +177,12 @@ for(let i=0;i<34;i++){
 
 /* ───────── Loading ───────── */
 const gltfLoader=new GLTFLoader(), fbxLoader=new FBXLoader(), statusEl=$('status');
+const loaded={};
+const onProg=path=>e=>{loaded[path]=e.loaded;const mb=Object.values(loaded).reduce((a,b)=>a+b,0)/1048576;$('loadMsg').textContent=`Loading fighters… ${mb.toFixed(1)} MB`;};
 async function loadCharacterFile(path){
  const lower=path.toLowerCase();
- if(lower.endsWith('.fbx')){const model=await fbxLoader.loadAsync(path);return {scene:model,animations:model.animations||[]};}
- if(lower.endsWith('.glb')||lower.endsWith('.gltf'))return await gltfLoader.loadAsync(path);
+ if(lower.endsWith('.fbx')){const model=await fbxLoader.loadAsync(path,onProg(path));return {scene:model,animations:model.animations||[]};}
+ if(lower.endsWith('.glb')||lower.endsWith('.gltf'))return await gltfLoader.loadAsync(path,onProg(path));
  throw new Error('Unsupported character format: '+path);
 }
 async function loadFirstCharacterFile(candidates){
@@ -397,10 +400,10 @@ async function loadFighters(){
   ]);
   player=makeFighter(a,true); enemy=makeFighter(b,false);
   $('rigInfo').textContent=[player,enemy].map((f,i)=>{const u=f.userData;return `${i?'Challenger':'Player'}: ${u.rig.bones.size}/${u.rig.count} bones mapped`+(u.rig.missing.length?`, MISSING ${u.rig.missing.join(',')}`:'')+(u.rig.dupes.length?`, ${u.rig.dupes.length} duplicate names`:'')+'\n  clips: '+(u.clips.map(c=>`${c.name} ${c.duration.toFixed(1)}s/${c.tracks.length}tr`).join('; ')||'none');}).join('\n');
-  statusEl.textContent='Both fighters loaded. Enter the arena!';setTimeout(()=>{statusEl.style.display='none';},4500);
+  statusEl.textContent='Both fighters loaded. Enter the arena!';$('loadMsg').textContent='Ready.';$('startBtn').disabled=false;setTimeout(()=>{statusEl.style.display='none';},4500);
  }catch(err){
   console.error('Character loading failed:',err);
-  statusEl.textContent='Could not load both fighters. Check the filenames in the assets folder and the browser console.';
+  statusEl.textContent='Could not load both fighters. Check the filenames in the assets folder and the browser console.';$('loadMsg').textContent='Could not load the fighters: '+String(err?.message||err).slice(0,300);$('loadMsg').style.color='#ff7a6b';
  }
 }
 loadFighters();
