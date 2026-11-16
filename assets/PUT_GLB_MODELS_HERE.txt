@@ -1,1 +1,0 @@
-Place fighter.glb and opponent.glb in this folder. See README.txt.
